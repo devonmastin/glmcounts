@@ -1,0 +1,100 @@
+---
+title: "GLM Counts- fishing best practices"
+author: "Devon Mastin"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    self_contained: TRUE
+    df_print: paged
+    toc: TRUE
+    toc.position: left
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, error = FALSE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(MASS)
+library(arm)
+library(performance)
+library(grid)
+fish <- read.csv("https://stats.idre.ucla.edu/stat/data/fish.csv")
+```
+
+#### Summary
+```{r summary}
+summary(fish)
+```
+#### Histogram, log transform the x-axis
+```{r histogram}
+ggplot(fish, aes(count)) + geom_histogram() + scale_x_log10()+
+  xlab("Fish Caught")
+```
+### Bringing kids
+```{r Plot, y transform the y-axis}
+ggplot(fish, aes(child, count))+
+  geom_point(size=3)+
+  geom_smooth(method = "glm", method.args=list(family="quasipoisson"(link="log")))+
+  ylab("Fish Caught")+
+  xlab("Children Present")+
+  scale_y_log10()
+```
+
+
+#### Poisson Model
+```{r poisson model}
+poisson_model <- glm(count~persons + child, data = fish, family = poisson)
+summary(poisson_model)
+```
+this model is over-distributed so we are going to use the quasipoisson model to get another look
+
+
+#### QuasiPoisson Model
+```{r quasipoisson model}
+quasipoisson_model <- glm(count~persons + child, data = fish, family = quasipoisson)
+summary(quasipoisson_model)
+```
+
+```{r}
+predicted_counts <- predict(quasipoisson_model, type = "response")
+
+plot(predicted_counts, fish$count, 
+     xlab = "Predicted Counts", ylab = "Observed Counts", 
+     main = "Predicted vs. Observed Counts")
+
+```
+
+
+
+
+#### Box Plot
+
+```{r}
+fish$live_bait <- ifelse(fish$livebait == 1, "yes", "no")
+ggplot(data = fish, aes(x = factor(live_bait), y = count)) +geom_boxplot() +
+  labs(title = "Box Plot of Count Response by Use of Live Bait",
+       x = "Use of Bait",
+       y = "Count Response")
+
+```
+
+
+
+#### Poisson Model
+```{r}
+glm_model <- glm(count ~ livebait, data = fish, family = poisson)
+summary(glm_model)
+```
+
+#### Quasipoisson Model
+```{r}
+glm_quasi_model <- glm(count ~ livebait, data = fish, family = quasipoisson)
+summary(glm_quasi_model)
+```
+
+
+
+
+
